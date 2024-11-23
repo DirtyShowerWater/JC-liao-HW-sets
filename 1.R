@@ -9,14 +9,17 @@ Data<-read.csv("C:/Users/Chris/Desktop/HW3/DDK2011.csv")
 student_test_data <- read_dta("student_test_data.dta")
 for_peer_papers <-read_dta("forpeerpapers.dta")
 #1.
+#迴歸係數
 model = lm(stdR_totalscore ~ tracking + bottomhalf + bottomhalf_tracking 
             + girl + percentile + agetest + etpteacher, 
             data= for_peer_papers)
 
 summary(model)
+#Total effects, F-statistic, P-value
 cl_vcoc<-vcovCL(model,cluster=~schoolid)
 linearHypothesis(model, c("tracking + bottomhalf_tracking = 0"), vcov. = cl_vcoc)
 
+#2. (未完成)
 #bootstrap
 set.seed(123)
 n_boot <- 1000
