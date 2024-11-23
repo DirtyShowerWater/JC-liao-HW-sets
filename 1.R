@@ -16,7 +16,7 @@ model = lm(stdR_totalscore ~ tracking + bottomhalf + bottomhalf_tracking
 
 summary(model)
 #Total effects, F-statistic, P-value
-cl_vcoc<-vcovCL(model,cluster=~schoolid)
+cl_vcov<-vcovCL(model,cluster=~schoolid)
 linearHypothesis(model, c("tracking + bottomhalf_tracking = 0"), vcov. = cl_vcoc)
 
 #2. (未完成)
