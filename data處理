@@ -1,0 +1,53 @@
+library(haven)
+library(sandwich)
+library(lmtest)
+library(dplyr)
+library(tidyr)
+library(AER)
+setwd("C:/Users/birth/Desktop/HW3_ClusterSTD") #改路徑!
+data<-read_dta("C:/Users/birth/Desktop/HW3_ClusterSTD/student_test_data.dta") #改路徑!
+#dta資料處理
+data <- data %>%
+  mutate(
+    etpteacher_tracking_lowstream = etpteacher * lowstream,
+    sbm_tracking_lowstream = sbm * tracking * lowstream)
+variables <- c("bottomhalf", "tophalf", "etpteacher")
+for (var in variables) {
+  data[[paste0(var, "_tracking")]] <- data[[var]] * data$tracking
+}
+data <- data %>%
+  mutate(
+    percentilesq = percentile^2,
+    percentilecub = percentile^3
+  )
+data <- data %>%
+  mutate(
+    agetest = ifelse(is.na(agetest), r2_age - 1, agetest)
+  )
+scores <- c("litscore", "mathscoreraw", "totalscore", "letterscore", 
+            "wordscore", "sentscore", "spellscore", 
+            "additions_score", "substractions_score", "multiplications_score")
+
+for (score in scores) {
+  tracking0_stats <- data %>%
+    filter(tracking == 0) %>%
+    summarise(meancomp = mean(.data[[score]], na.rm = TRUE),
+              sdcomp = sd(.data[[score]], na.rm = TRUE))
+  
+  data[[paste0("stdR_", score)]] <- (data[[score]] - tracking0_stats$meancomp) / tracking0_stats$sdcomp
+}
+
+# Save the processed dataset
+saveRDS(data, "forpeerpapers.rds")  # Save as an RDS file
+
+# 輸出成csv
+write.csv(data, "forpeerpapers.csv", row.names = FALSE)
+
+for_peers_paper<-read.csv("C:/Users/birth/Desktop/HW3_ClusterSTD/forpeerpapers.csv")
+
+#迴歸& Clustered 標準誤
+model<-lm(stdR_totalscore ~ tracking + bottomhalf + bottomhalf_tracking 
+                    + girl + percentile + agetest + etpteacher,
+                    data= for_peers_paper)
+coeftest(model,vcov=vcovCL,cluster=~schoolid)
+linearHypothesis(model, c("tracking + bottomhalf_tracking = 0"), vcov = vcovCL(model, cluster = ~schoolid))
