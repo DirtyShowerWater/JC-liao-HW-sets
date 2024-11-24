@@ -1,0 +1,183 @@
+library(haven)
+library(sandwich)
+library(lmtest)
+library(dplyr)
+library(tidyr)
+library(AER)
+setwd("C:/Users/Chris/Desktop/HW3/112446-V1")
+Data<-read.csv("C:/Users/Chris/Desktop/HW3/DDK2011.csv")
+for_peer_papers <-read_dta("forpeerpapers.dta")
+#1.
+model = lm(stdR_totalscore ~ tracking + bottomhalf + bottomhalf_tracking 
+           + girl + percentile + agetest + etpteacher,ㄊ 
+           data= for_peer_papers)
+
+coeftest(model,vcov=vcovCL,cluster=~schoolid)
+cl_vcov<-vcovCL(model,cluster=~schoolid)
+linearHypothesis(model, c("tracking + bottomhalf_tracking = 0"), vcov = vcovCL(model, cluster = ~schoolid))
+# # Example F-statistic
+# F_statistic <- 4.387
+# 
+# # Round to one decimal place
+# F_statistic_rounded <- round(F_statistic, 1)
+# print(F_statistic_rounded)  # Output: 4.4
+# p_value <- 1 - pf(F_statistic_rounded, df1 = 1, df2 = 5273)
+# print(p_value)
+
+#2.(a)
+# Set the number of bootstrap iterations
+set.seed(123)
+n_boot <- 1000
+
+# Extract unique cluster IDs (schoolid)
+unique_clusters <- unique(for_peer_papers$schoolid)
+
+# Initialize a list to store bootstrap coefficients
+bootstrap_results_cluster <- list()
+# Loop over bootstrap iterations
+for (i in 1:n_boot) {
+  # Step 1: Resample cluster IDs with replacement
+  resampled_clusters <- sample(unique_clusters, replace = TRUE)
+  
+  # Step 2: Extract data for the resampled clusters
+  resampled_data <- do.call(rbind, lapply(resampled_clusters, function(cluster) {
+    for_peer_papers[for_peer_papers$schoolid == cluster, ]
+  }))
+  
+  # Step 3: Fit the linear model on the resampled dataset
+  fit <- lm(stdR_totalscore ~ tracking + bottomhalf + bottomhalf_tracking +
+              girl + percentile + agetest + etpteacher, data = resampled_data)
+  
+  # Step 4: Store coefficients
+  bootstrap_results_cluster[[i]] <- coef(fit)
+}
+
+# Combine bootstrap coefficients into a matrix
+bootstrap_matrix_cluster <- do.call(rbind, bootstrap_results_cluster)
+
+# Assign column names
+colnames(bootstrap_matrix_cluster) <- names(coef(lm(stdR_totalscore ~ 
+                                                      tracking + bottomhalf + bottomhalf_tracking +
+                                                      girl + percentile + agetest + etpteacher, 
+                                                    data = for_peer_papers)))
+
+
+# Compute 95% bootstrap percentile confidence intervals
+confidence_intervals_cluster <- apply(bootstrap_matrix_cluster, 2, function(coef_values) {
+  quantile(coef_values, probs = c(0.025, 0.975))
+})
+
+# Transpose the confidence intervals matrix for better readability
+confidence_intervals_cluster <- t(confidence_intervals_cluster)
+colnames(confidence_intervals_cluster) <- c("2.5%", "97.5%")
+
+# Compute clustered standard errors (variance adjusted for clustering)
+variances_cluster <- apply(bootstrap_matrix_cluster, 2, var)
+std_errors_cluster <- sqrt(variances_cluster)
+
+# Combine results into a summary table
+bootstrap_summary_cluster <- data.frame(
+  Coefficient = colnames(bootstrap_matrix_cluster),
+  Mean = colMeans(bootstrap_matrix_cluster),
+  Std_Error = std_errors_cluster,
+  `2.5th` = confidence_intervals_cluster[, "2.5%"],
+  `97.5th` = confidence_intervals_cluster[, "97.5%"]
+)
+
+# View the summary
+print(bootstrap_summary_cluster)
+
+#(b)
+
+# Set the number of bootstrap iterations
+set.seed(123)
+n_boot <- 1000
+
+# Initialize a list to store bootstrap coefficients
+bootstrap_results <- list()
+
+# Loop over bootstrap iterations
+for (i in 1:n_boot) {
+  # Step 1: Resample individual rows with replacement
+  resampled_data <- for_peer_papers[sample(1:nrow(for_peer_papers), size = nrow(for_peer_papers), replace = TRUE), ]
+  
+  # Step 2: Fit the linear model on the resampled dataset
+  fit <- lm(stdR_totalscore ~ tracking + bottomhalf + bottomhalf_tracking +
+              girl + percentile + agetest + etpteacher, data = resampled_data)
+  
+  # Step 3: Store coefficients
+  bootstrap_results[[i]] <- coef(fit)
+}
+
+# Combine bootstrap coefficients into a matrix
+bootstrap_matrix <- do.call(rbind, bootstrap_results)
+
+# Assign column names
+colnames(bootstrap_matrix) <- names(coef(lm(stdR_totalscore ~ 
+                                              tracking + bottomhalf + bottomhalf_tracking +
+                                              girl + percentile + agetest + etpteacher, 
+                                            data = for_peer_papers)))
+
+# Summary statistics for the bootstrap results
+summary(bootstrap_matrix)
+
+# Variance of each coefficient
+variances <- apply(bootstrap_matrix, 2, var)
+
+# Standard errors (square root of variance)
+std_errors <- sqrt(variances)
+
+bootstrap_summary <- data.frame(
+  Coefficient = colnames(bootstrap_matrix),
+  Variance = variances,
+  Std_Error = std_errors
+)
+
+# View the summary
+print(bootstrap_summary_cluster)
+
+#(c)
+colnames(bootstrap_summary_cluster)
+# Extracting the confidence interval data
+confidence_interval_data <- bootstrap_summary_cluster[, c( "X2.5th", "X97.5th")]
+
+# Displaying the data
+print(confidence_interval_data)
+
+#(d)
+# Extract the original estimates for all coefficients
+coefficients_original <- coef(model)
+
+# Extract the bootstrap standard errors for all coefficients
+bootstrap_se_all <- std_errors_cluster
+
+# Compute t-statistics from the original data
+t_hat <- coefficients_original / bootstrap_se_all
+
+# Initialize a vector to store bootstrap p-values
+bootstrap_p_values <- numeric(length(coefficients_original))
+names(bootstrap_p_values) <- names(coefficients_original)
+
+# Loop over all coefficients
+for (coef_name in names(coefficients_original)) {
+  # Compute bootstrap t-statistics for this coefficient
+  bootstrap_t_stats <- (bootstrap_matrix_cluster[, coef_name] - coefficients_original[coef_name]) / bootstrap_se_all[coef_name]
+  
+  # Compute the bootstrap p-value
+  bootstrap_p_values[coef_name] <- mean(abs(bootstrap_t_stats) > abs(t_original_all[coef_name]))
+}
+
+# Combine results into a data frame for better readability
+bootstrap_summary_all <- data.frame(
+  Coefficient = names(coefficients_original),
+  Estimate = coefficients_original,
+  Std_Error = bootstrap_se_all,
+  t_Statistic = t_original_all,
+  p_Value = bootstrap_p_values
+)
+
+# View the summary
+print(bootstrap_summary_all)
+
+
+  
