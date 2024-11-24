@@ -9,7 +9,7 @@ Data<-read.csv("C:/Users/Chris/Desktop/HW3/DDK2011.csv")
 for_peer_papers <-read_dta("forpeerpapers.dta")
 #1.
 model = lm(stdR_totalscore ~ tracking + bottomhalf + bottomhalf_tracking 
-           + girl + percentile + agetest + etpteacher,ㄊ 
+           + girl + percentile + agetest + etpteacher, 
            data= for_peer_papers)
 
 coeftest(model,vcov=vcovCL,cluster=~schoolid)
