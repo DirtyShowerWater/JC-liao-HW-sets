@@ -1,0 +1,12 @@
+萬用RMarkdown(輸出中文) 
+
+---
+title: "R Code for final term project "
+author: "113258047 經碩一 陳正益 "
+output: 
+  pdf_document: 
+   includes:
+    keep_tex: yes
+    latex_engine: xelatex
+header-includes:
+ - \usepackage{ctex}
