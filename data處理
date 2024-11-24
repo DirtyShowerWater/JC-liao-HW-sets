@@ -12,18 +12,16 @@ data <- data %>%
     etpteacher_tracking_lowstream = etpteacher * lowstream,
     sbm_tracking_lowstream = sbm * tracking * lowstream)
 variables <- c("bottomhalf", "tophalf", "etpteacher")
+
 for (var in variables) {
   data[[paste0(var, "_tracking")]] <- data[[var]] * data$tracking
 }
+
 data <- data %>%
-  mutate(
-    percentilesq = percentile^2,
-    percentilecub = percentile^3
-  )
+  mutate(percentilesq = percentile^2,percentilecub = percentile^3)
 data <- data %>%
-  mutate(
-    agetest = ifelse(is.na(agetest), r2_age - 1, agetest)
-  )
+  mutate(agetest = ifelse(is.na(agetest), r2_age - 1, agetest))
+
 scores <- c("litscore", "mathscoreraw", "totalscore", "letterscore", 
             "wordscore", "sentscore", "spellscore", 
             "additions_score", "substractions_score", "multiplications_score")
