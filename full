@@ -15,14 +15,6 @@ model = lm(stdR_totalscore ~ tracking + bottomhalf + bottomhalf_tracking
 coeftest(model,vcov=vcovCL,cluster=~schoolid)
 cl_vcov<-vcovCL(model,cluster=~schoolid)
 linearHypothesis(model, c("tracking + bottomhalf_tracking = 0"), vcov = vcovCL(model, cluster = ~schoolid))
-# # Example F-statistic
-# F_statistic <- 4.387
-# 
-# # Round to one decimal place
-# F_statistic_rounded <- round(F_statistic, 1)
-# print(F_statistic_rounded)  # Output: 4.4
-# p_value <- 1 - pf(F_statistic_rounded, df1 = 1, df2 = 5273)
-# print(p_value)
 
 #2.(a)
 # Set the number of bootstrap iterations
@@ -149,10 +141,10 @@ print(confidence_interval_data)
 coefficients_original <- coef(model)
 
 # Extract the bootstrap standard errors for all coefficients
-bootstrap_se_all <- std_errors_cluster
+se_cluster <- std_errors_cluster
 
 # Compute t-statistics from the original data
-t_hat <- coefficients_original / bootstrap_se_all
+t_hat <- coefficients_original / se_cluster
 
 # Initialize a vector to store bootstrap p-values
 bootstrap_p_values <- numeric(length(coefficients_original))
@@ -169,10 +161,7 @@ for (coef_name in names(coefficients_original)) {
 
 # Combine results into a data frame for better readability
 bootstrap_summary_all <- data.frame(
-  Coefficient = names(coefficients_original),
   Estimate = coefficients_original,
-  Std_Error = bootstrap_se_all,
-  t_Statistic = t_original_all,
   p_Value = bootstrap_p_values
 )
 
