@@ -1,0 +1,33 @@
+library(dplyr)
+library(sandwich)
+library(DescTools)
+library(fixest)
+library(here)
+library(modelsummary)
+library(car)
+library(tidyr)
+library(estimatr)
+library(lmtest)
+library(haven)
+setwd("C:/Users/Chris/OneDrive/Desktop/First/Applied R/Final Project/Final Project")
+data<- read_dta("merged_clean_2020.dta")
+Filtered_data <- data %>% 
+  select(treatment,active_branch,hchyid,vo_id,brac_id,year,been_flooded,
+         quantity_production_rice,rice_cult_seeds,seed_per_acre,land_cult_sd,
+         fert_per_dec_sd,pest_per_dec_sd,other_per_acre_sd,
+         seed_per_acre_sd,total_bus_invest_sd,total_crop_prod,days_worked_farm,
+         daily_wage_days,fert_per_dec,pest_per_dec,
+         land_aman_own,land_cult)%>%drop_na()%>%
+  filter(treatment==1) #選input given treatment=1
+
+# Standardize the column
+Filtered_data$total_crop_prod <- as.numeric(Filtered_data$total_crop_prod)
+Filtered_data$total_crop_prod_sd <- (Filtered_data$total_crop_prod - 
+                                       mean(Filtered_data$total_crop_prod, na.rm = TRUE)) / 
+  sd(Filtered_data$total_crop_prod, na.rm = TRUE) #total_crop_prod標準化
+
+#regeression
+model<-lm(total_crop_prod_sd~seed_per_acre_sd*been_flooded+land_cult_sd*been_flooded+
+            total_bus_invest_sd*been_flooded,data=Filtered_data) 
+summary(model)
+coeftest(model,vcovCL(model,cluster = ~hchyid))
